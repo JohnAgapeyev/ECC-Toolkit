@@ -1,6 +1,7 @@
 #include <Python.h>
 #include <string>
 
+#define ECC_TOOLKIT_IMPLEMENTATION
 #include "ecctoolkit.h"
 
 int main(void) {
