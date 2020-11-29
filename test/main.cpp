@@ -36,5 +36,23 @@ int main(void) {
 
     printf("Here's the output:\n%s", res.c_str());
 
+    ecc::fe_25519 x = ecc::impl::prime_element();
+
+    ecc::fe_25519 x2 = ecc::impl::prime_element();
+
+#if 0
+    x2[3] -= 10;
+
+    x = x - x2;
+#endif
+
+    printf("This is a test\n");
+
+    for (const auto b : x.data) {
+        printf("%08x", b);
+    }
+    printf("\n");
+
+
     return 0;
 }

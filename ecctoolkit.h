@@ -14,13 +14,21 @@
 namespace ecc {
 
     //31-bit radix
-    using fe_25519 = std::array<uint32_t, 10>;
+    struct fe_25519 {
+        std::array<uint32_t, 10> data;
+        constexpr decltype(auto) operator[](size_t i) const {
+            return data[i];
+        }
+        constexpr decltype(auto) operator[](size_t i) {
+            return data[i];
+        }
+    };
 
-    [[nodiscard]] ECCSDEF constexpr auto operator+(const fe_25519& a, const fe_25519& b);
-    [[nodiscard]] ECCSDEF constexpr auto operator-(const fe_25519& a, const fe_25519& b);
-    [[nodiscard]] ECCSDEF constexpr auto operator*(const fe_25519& a, const fe_25519& b);
-    [[nodiscard]] ECCSDEF constexpr auto operator^(const fe_25519& a, const fe_25519& b);
-    [[nodiscard]] ECCSDEF constexpr auto operator^(const fe_25519& a, uint32_t b);
+    [[nodiscard]] ECCSDEF constexpr fe_25519 operator+(const fe_25519& a, const fe_25519& b);
+    [[nodiscard]] ECCSDEF constexpr fe_25519 operator-(const fe_25519& a, const fe_25519& b);
+    [[nodiscard]] ECCSDEF constexpr fe_25519 operator*(const fe_25519& a, const fe_25519& b);
+    [[nodiscard]] ECCSDEF constexpr fe_25519 operator^(const fe_25519& a, const fe_25519& b);
+    [[nodiscard]] ECCSDEF constexpr fe_25519 operator^(const fe_25519& a, uint32_t b);
 
 } //namespace ecc
 
@@ -67,9 +75,16 @@ namespace ecc::impl {
         return 1 ^ lt(a, b);
     }
 
+#if 0
     [[nodiscard]] ECCSDEF constexpr uint32_t mux(uint32_t c, uint32_t a, uint32_t b) {
         return b ^ (-c & (a ^ b));
     }
+#else
+    template<typename T>
+    [[nodiscard]] ECCSDEF constexpr T mux(uint32_t c, T a, T b) {
+        return b ^ (-c & (a ^ b));
+    }
+#endif
 
     [[nodiscard]] ECCSDEF constexpr uint32_t cmp(const void* x, const void* y, size_t len) {
         const unsigned char* a = (const unsigned char*) x;
@@ -85,39 +100,37 @@ namespace ecc::impl {
         return (1 << limb_bit_length) - 1;
     }
 
-    [[nodiscard]] ECCSDEF constexpr auto operator+(const fe_25519& a, const fe_25519& b) {
+
+} //namespace ecc::impl
+
+namespace ecc {
+
+    [[nodiscard]] ECCSDEF constexpr fe_25519 operator+(const fe_25519& a, const fe_25519& b) {
         fe_25519 r{0};
         int carry = 0;
         for (size_t i = 0; i < 9; ++i) {
             uint32_t res = a[i] + b[i] + carry;
-            r[i] = res % max_limb_val(31);
-            carry = mux(eq(r[i], res), 0, 1);
+            r[i] = res % ecc::impl::max_limb_val(31);
+            carry = ecc::impl::mux(ecc::impl::eq(r[i], res), 0, 1);
         }
         r[10] = carry;
         return r;
     }
 
-    [[nodiscard]] ECCSDEF constexpr auto operator-(const fe_25519& a, const fe_25519& b) {
-        //fe_25519 r = a + mux(cmp(a.data(), b.data(), a.size()), zero_element(), prime_element());
-        fe_25519 r{0};
-
-        //TODO: make this constant time
-        if (cmp(a.data(), b.data(), a.size())) {
-            r = a + zero_element();
-        } else {
-            r = a + prime_element();
-        }
+    [[nodiscard]] ECCSDEF constexpr fe_25519 operator-(const fe_25519& a, const fe_25519& b) {
+        fe_25519 z = ecc::impl::zero_element();
+        fe_25519 p = ecc::impl::prime_element();
+        fe_25519 r = *reinterpret_cast<decltype(&z)>(ecc::impl::mux(ecc::impl::cmp(a.data.data(), b.data.data(), a.data.size()), reinterpret_cast<uintptr_t>(&z), reinterpret_cast<uintptr_t>(&p)));
 
         int carry = 0;
         for (size_t i = 0; i < 9; ++i) {
             uint32_t res = a[i] - b[i] + carry;
-            r[i] = res % max_limb_val(31);
-            carry = mux(nonzero(res), 0, -1);
+            r[i] = res % ecc::impl::max_limb_val(31);
+            carry = ecc::impl::mux(ecc::impl::nonzero(res), 0, -1);
         }
         r[10] = carry;
         return r;
     }
-
-} //namespace ecc::impl
+}
 
 #endif //ECC_TOOLKIT_IMPLEMENTATION
