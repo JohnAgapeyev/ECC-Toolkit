@@ -104,29 +104,30 @@ namespace ecc::impl {
 } //namespace ecc::impl
 
 namespace ecc {
+    using namespace ecc::impl;
 
     [[nodiscard]] ECCSDEF constexpr fe_25519 operator+(const fe_25519& a, const fe_25519& b) {
         fe_25519 r{0};
         int carry = 0;
         for (size_t i = 0; i < 9; ++i) {
             uint32_t res = a[i] + b[i] + carry;
-            r[i] = res % ecc::impl::max_limb_val(31);
-            carry = ecc::impl::mux(ecc::impl::eq(r[i], res), 0, 1);
+            r[i] = res % max_limb_val(31);
+            carry = mux(eq(r[i], res), 0, 1);
         }
         r[10] = carry;
         return r;
     }
 
     [[nodiscard]] ECCSDEF constexpr fe_25519 operator-(const fe_25519& a, const fe_25519& b) {
-        fe_25519 z = ecc::impl::zero_element();
-        fe_25519 p = ecc::impl::prime_element();
-        fe_25519 r = *reinterpret_cast<decltype(&z)>(ecc::impl::mux(ecc::impl::cmp(a.data.data(), b.data.data(), a.data.size()), reinterpret_cast<uintptr_t>(&z), reinterpret_cast<uintptr_t>(&p)));
+        fe_25519 z = zero_element();
+        fe_25519 p = prime_element();
+        fe_25519 r = *reinterpret_cast<decltype(&z)>(mux(cmp(a.data.data(), b.data.data(), a.data.size()), reinterpret_cast<uintptr_t>(&z), reinterpret_cast<uintptr_t>(&p)));
 
         int carry = 0;
         for (size_t i = 0; i < 9; ++i) {
             uint32_t res = a[i] - b[i] + carry;
-            r[i] = res % ecc::impl::max_limb_val(31);
-            carry = ecc::impl::mux(ecc::impl::nonzero(res), 0, -1);
+            r[i] = res % max_limb_val(31);
+            carry = mux(nonzero(res), 0, -1);
         }
         r[10] = carry;
         return r;
